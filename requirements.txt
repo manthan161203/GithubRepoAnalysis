@@ -1,0 +1,16 @@
+fastapi>=0.95.0
+uvicorn[standard]>=0.22.0
+google-genai>=0.6.0
+python-dotenv>=1.0.0
+langchain>=0.1.0
+langchain-community>=0.1.0
+langchain-huggingface>=0.0.4
+faiss-cpu>=1.7.4
+huggingface-hub>=0.16.0
+youtube-transcript-api>=1.2.4
+PyMuPDF>=1.26.0
+python-docx>=1.1.0
+aiofiles>=23.2.1
+gitpython>=3.1.36
+requests>=2.31.0
+pytest>=7.0.0

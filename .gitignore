@@ -1,2 +1,4 @@
+.env
 .venv
 cloned_repo
+__pycache__
