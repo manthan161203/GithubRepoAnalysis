@@ -1,80 +1,144 @@
-# GitHub & YouTube Analysis AI
+# GitHub & YouTube Analysis API
 
-An advanced analysis tool powered by Gemini AI that evaluates GitHub repositories and YouTube presentation skills.
+FastAPI service that uses Gemini to:
+- analyze GitHub repositories,
+- run semantic (RAG-based) code analysis,
+- extract GitHub URLs from PDF/DOCX files and analyze them,
+- assess YouTube presentation quality (native video input or transcript fallback).
 
-## 🚀 Features
+## Features
 
-- **GitHub Repository Analysis**: Direct expert review of repositories using source code.
-- **RAG-based Semantic Search**: Analyze specific parts of a repository using natural language queries.
-- **Document-to-Repo Analysis**: Extract GitHub URLs from PDF/DOCX files and analyze them instantly.
-- **Visual Feedback**: Supports up to 4 screenshots for enhanced repository review.
-- **YouTube Presentation Audit**: Native AI-powered evaluation of body language, tonality, and structure.
-- **Transcript-based Fallback**: Reliable analysis even when native video support is unavailable.
+- GitHub repo analysis from URL
+- Semantic repo analysis with query + embeddings (FAISS + HuggingFace)
+- Document upload (`.pdf` / `.docx`) to extract a GitHub repo URL
+- Optional image screenshots (up to 4) for repo context
+- YouTube analysis with automatic transcript fallback on native permission errors
+- Token usage in API responses (`request_tokens`, `response_tokens`, `total_tokens`)
 
----
+## Project Structure
 
-## 📂 Project Structure
-
-The project follows a clean, modular architecture:
-
-- **`core/`**: Central configuration, models, and Gemini AI client.
-- **`utils/`**: Helper utilities for git operations, embeddings, document parsing, and prompts.
-- **`routers/`**: Categorized API endpoints for maintainability.
-- **`app.py`**: Main entry point for the FastAPI application.
-
----
-
-## 🛠️ Installation
-
-1.  **Clone the repository:**
-    ```bash
-    git clone <your-repo-url>
-    cd IIMBX
-    ```
-
-2.  **Set up a virtual environment:**
-    ```bash
-    python -m venv .venv
-    source .venv/bin/activate
-    ```
-
-3.  **Install dependencies:**
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-4.  **Configure environment variables:**
-    Create a `.env` file in the root directory:
-    ```env
-    GEMINI_API_KEY=your_api_key_here
-    ```
-
----
-
-## 📡 API Endpoints
-
-### GitHub Analysis (`/github`)
-- **`POST /github/analyze`**: Standard repo analysis.
-- **`POST /github/semantic-analyze`**: Query-based code review.
-- **`POST /github/analyze-doc`**: Upload PDF/DOCX + optional images.
-
-### YouTube Analysis (`/youtube`)
-- **`POST /youtube/analyze`**: Native video analysis.
-- **`POST /youtube/analyze-transcript`**: Fallback transcript analysis.
-
-### Generic
-- **`GET /health`**: System status.
-- **`POST /test-gemini`**: Direct prompt testing with token usage.
-- **`GET /`**: API overview.
-
----
-
-## 🏃 How to Run
-
-Start the FastAPI development server:
-
-```bash
-uvicorn app:app --reload --port 8001 --host 0.0.0.0
+```text
+IIMBX/
+├── app.py
+├── core/
+│   ├── config.py
+│   ├── gemini_client.py
+│   └── schemas.py
+├── routers/
+│   ├── github_router.py
+│   └── youtube_router.py
+├── utils/
+│   ├── doc_extract_utils.py
+│   ├── embed_utils.py
+│   ├── prompts.py
+│   └── repo_utils.py
+└── requirements.txt
 ```
 
-Access the interactive API documentation at `http://localhost:8001/docs`.
+## Prerequisites
+
+- Python 3.10+
+- `git` installed (used for cloning repositories during analysis)
+- Gemini API key
+- Internet access for:
+  - Gemini API calls
+  - cloning public GitHub repositories
+  - first-time HuggingFace embedding model download (`intfloat/multilingual-e5-base`)
+
+## Setup
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+Create `.env` in the project root:
+
+```env
+GEMINI_API_KEY=your_gemini_api_key
+```
+
+## Run the API
+
+```bash
+uvicorn app:app --reload --host 0.0.0.0 --port 8001
+```
+
+Open:
+- Swagger UI: `http://localhost:8001/docs`
+- ReDoc: `http://localhost:8001/redoc`
+
+## Endpoints
+
+### Generic
+
+- `GET /` - basic API info
+- `GET /health` - health check
+- `POST /test-gemini` - test Gemini with a free-form prompt
+
+Example:
+
+```bash
+curl -X POST "http://localhost:8001/test-gemini" \
+  -H "Content-Type: application/json" \
+  -d '{"prompt":"Return a JSON object with status ok"}'
+```
+
+### GitHub
+
+- `POST /github/analyze` - direct repository analysis
+- `POST /github/semantic-analyze` - semantic analysis with query parameter
+- `POST /github/analyze-doc` - extract GitHub URL from uploaded PDF/DOCX and analyze
+
+Direct analysis example:
+
+```bash
+curl -X POST "http://localhost:8001/github/analyze" \
+  -H "Content-Type: application/json" \
+  -d '{"repo_url":"https://github.com/psf/requests"}'
+```
+
+Semantic analysis example:
+
+```bash
+curl -X POST "http://localhost:8001/github/semantic-analyze?query=Explain%20authentication%20flow" \
+  -H "Content-Type: application/json" \
+  -d '{"repo_url":"https://github.com/psf/requests"}'
+```
+
+Document upload example:
+
+```bash
+curl -X POST "http://localhost:8001/github/analyze-doc" \
+  -F "document=@/path/to/input.pdf" \
+  -F "images=@/path/to/screenshot1.png" \
+  -F "images=@/path/to/screenshot2.jpg"
+```
+
+### YouTube
+
+- `POST /youtube/analyze` - native YouTube analysis
+- `POST /youtube/analyze-transcript` - transcript-only analysis
+
+Example:
+
+```bash
+curl -X POST "http://localhost:8001/youtube/analyze" \
+  -H "Content-Type: application/json" \
+  -d '{"youtube_urls":["https://www.youtube.com/watch?v=dQw4w9WgXcQ"]}'
+```
+
+## Response Shape (high level)
+
+Most analysis endpoints return:
+- source identifiers (`repo_url` or `youtube_urls`)
+- `model`
+- token usage (`request_tokens`, `response_tokens`, `total_tokens`)
+- `analysis` (model-generated JSON object; may include `raw_output` fallback when parsing fails)
+
+## Notes
+
+- `MODEL_NAME` is set in `core/config.py` (currently `gemini-3-flash-preview`).
+- `/youtube/analyze` automatically falls back to transcript-based analysis on native permission-denied responses.
+- `/github/analyze-doc` supports `.pdf` and `.docx` only.
