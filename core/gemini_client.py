@@ -1,7 +1,8 @@
+import asyncio
 import os
 import logging
 import traceback
-from typing import List, Optional, Union
+from typing import Optional
 from google import genai
 from google.genai import types
 
@@ -47,12 +48,9 @@ async def generate_content(client: genai.Client, model: str, contents: list, con
     return response_text, request_tokens, response_tokens, total_tokens
 
 
-async def generate_content_youtube(client: genai.Client, model: str, youtube_urls: Union[str, List[str]], prompt: str):
-    # Accept a single URL or a list of URLs; build file_data parts for each
-    urls = [youtube_urls] if isinstance(youtube_urls, str) else list(youtube_urls)
-    parts = []
-    for u in urls:
-        parts.append(types.Part(file_data=types.FileData(file_uri=u)))
-    parts.append(types.Part(text=prompt))
-    contents = [types.Content(role="user", parts=parts)]
-    return await generate_content(client, model, contents)
+async def upload_file(client: genai.Client, file_path: str):
+    return await asyncio.to_thread(client.files.upload, file=file_path)
+
+
+async def get_file(client: genai.Client, file_name: str):
+    return await asyncio.to_thread(client.files.get, name=file_name)

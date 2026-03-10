@@ -12,7 +12,7 @@ FastAPI service that uses Gemini to:
 - Semantic repo analysis with query + embeddings (FAISS + HuggingFace)
 - Document upload (`.pdf` / `.docx`) to extract a GitHub repo URL
 - Optional image screenshots (up to 4) for repo context
-- YouTube analysis with automatic transcript fallback on native permission errors
+- YouTube analysis by downloading videos locally, uploading to Gemini, then transcript fallback if needed
 - Token usage in API responses (`request_tokens`, `response_tokens`, `total_tokens`)
 
 ## Project Structure
@@ -140,5 +140,6 @@ Most analysis endpoints return:
 ## Notes
 
 - `MODEL_NAME` is set in `core/config.py` (currently `gemini-3-flash-preview`).
-- `/youtube/analyze` automatically falls back to transcript-based analysis on native permission-denied responses.
+- `/youtube/analyze` downloads the YouTube video with `yt-dlp`, uploads it to Gemini Files API, and falls back to transcript analysis only if download/upload analysis fails.
+- Private YouTube download attempts typically require valid browser cookies. Set `YTDLP_COOKIES_FILE` or `YTDLP_COOKIES_FROM_BROWSER` in `.env` for that use case.
 - `/github/analyze-doc` supports `.pdf` and `.docx` only.
